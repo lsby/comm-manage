@@ -26,8 +26,8 @@ export interface 消息管理项 {
     状态: '未回复' | '已回复'
 }
 
-var 消息转字符串 = JSON.stringify
-var 字符串转消息 = JSON.parse
+export var 消息转字符串 = JSON.stringify
+export var 字符串转消息 = JSON.parse
 
 export default function 通信管理者(发送函数: (data: string) => Promise<void>) {
     var 映射表: { [消息id: string]: 消息管理项 } = {}
