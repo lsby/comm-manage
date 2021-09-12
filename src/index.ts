@@ -9,6 +9,7 @@ export interface 管理者 {
     发送: (data: string) => Promise<string>
     接收: (data: string) => Promise<void>
     消费: (消息id: string, 超时时间?: number) => Promise<string | null>
+    id存在: (消息id: string) => boolean
 }
 export interface 发送消息 {
     id: string
@@ -88,6 +89,9 @@ export default function 通信管理者(发送函数: (data: string) => Promise<
                 }
                 f()
             })
+        },
+        id存在(id) {
+            return 映射表[id] != null
         },
     }
 
