@@ -80,7 +80,9 @@ export default function 通信管理者(发送函数: (data: string) => Promise<
                         if (映射表[id].返回错误 != null) {
                             return rej(映射表[id].返回错误)
                         }
-                        return res(映射表[id].返回内容)
+                        res(映射表[id].返回内容)
+                        delete 映射表[id]
+                        return
                     }
                     setTimeout(f, 100)
                 }
