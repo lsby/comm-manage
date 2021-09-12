@@ -1,4 +1,9 @@
-import * as uuid from 'uuid'
+function guid2() {
+    function S4() {
+        return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1)
+    }
+    return S4() + S4() + '-' + S4() + '-' + S4() + '-' + S4() + '-' + S4() + S4() + S4()
+}
 
 export interface 管理者 {
     发送: (data: string) => Promise<string>
@@ -28,7 +33,7 @@ export default function 通信管理者(发送函数: (data: string) => Promise<
     var 映射表: { [消息id: string]: 消息管理项 } = {}
     var r: 管理者 = {
         async 发送(data) {
-            var id = uuid.v4()
+            var id = guid2()
             var 消息: 发送消息 = {
                 id: id,
                 data: data,
