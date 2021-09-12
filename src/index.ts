@@ -22,6 +22,7 @@ export interface 返回消息 {
 export interface 消息管理项 {
     id: string
     发送内容: string
+    返回错误: string | null
     返回内容: string | null
     状态: '未回复' | '已回复'
 }
@@ -42,6 +43,7 @@ export default function 通信管理者(发送函数: (data: string) => Promise<
             映射表[id] = {
                 id: id,
                 发送内容: data,
+                返回错误: null,
                 返回内容: null,
                 状态: '未回复',
             }
@@ -57,6 +59,7 @@ export default function 通信管理者(发送函数: (data: string) => Promise<
             }
 
             映射表[消息.id].状态 = '已回复'
+            映射表[消息.id].返回错误 = 消息.err
             映射表[消息.id].返回内容 = 消息.data
         },
         async 消费(id: string, 超时时间: number = 0) {
@@ -74,6 +77,9 @@ export default function 通信管理者(发送函数: (data: string) => Promise<
                         return rej('超时:' + JSON.stringify({ id: 映射表[id].id, 发送内容: 映射表[id].发送内容 }))
                     }
                     if (映射表[id].状态 == '已回复') {
+                        if (映射表[id].返回错误 != null) {
+                            return rej(映射表[id].返回错误)
+                        }
                         return res(映射表[id].返回内容)
                     }
                     setTimeout(f, 100)
