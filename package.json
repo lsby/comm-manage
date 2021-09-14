@@ -1,6 +1,6 @@
 {
     "name": "@lsby/comm_manage",
-    "version": "0.0.8",
+    "version": "0.0.9",
     "main": "dist/index.js",
     "scripts": {
         "dev": "npm run watch",
@@ -16,11 +16,9 @@
     "devDependencies": {
         "@lsby/js_tools": "^0.0.3",
         "@types/mocha": "^8.2.2",
-        "@types/uuid": "^8.3.1",
         "ts-mocha": "^8.0.0",
         "typescript": "^4.2.4"
     },
-    "dependencies": {},
     "types": "./dist\\index.d.ts",
     "directories": {
         "test": "test"

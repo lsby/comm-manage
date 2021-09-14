@@ -5,90 +5,62 @@ function guid2() {
     return S4() + S4() + '-' + S4() + '-' + S4() + '-' + S4() + '-' + S4() + S4() + S4()
 }
 
-export interface 管理者 {
-    发送: (data: string) => Promise<string>
-    接收: (data: string) => Promise<void>
-    消费: (消息id: string, 超时时间?: number) => Promise<string | null>
-    id存在: (消息id: string) => boolean
-}
-export interface 发送消息 {
-    id: string
-    data: string
-}
-export interface 返回消息 {
-    id: string
-    err: string | null
-    data: string | null
-}
-export interface 消息管理项 {
-    id: string
-    发送内容: string
-    返回错误: string | null
-    返回内容: string | null
-    状态: '未回复' | '已回复'
+async function 等待(条件: () => boolean, 超时时间: number = 5000, 轮询时间: number = 100) {
+    return new Promise((res, rej) => {
+        var 计数器 = 0
+        function f() {
+            计数器++
+            if (超时时间 != 0 && 计数器 * 轮询时间 >= 超时时间) return rej('等待超时')
+            if (条件()) return res(null)
+            setTimeout(f, 轮询时间)
+        }
+        f()
+    })
 }
 
-export var 消息转字符串 = JSON.stringify
-export var 字符串转消息 = JSON.parse
+export interface 消息管理者<A, B> {
+    发送: (data: 发送消息实体<A>) => Promise<消息id>
+    接收: (data: 返回消息<B>) => Promise<void>
+    消费: (消息id: 消息id, 超时时间?: number, 轮询时间?: number) => Promise<返回消息实体<B>>
+    id存在: (消息id: 消息id) => boolean
+}
 
-export default function 通信管理者(发送函数: (data: string) => Promise<void>) {
-    var 映射表: { [消息id: string]: 消息管理项 } = {}
-    var r: 管理者 = {
-        async 发送(data) {
+type 消息id = string
+type 发送消息实体<A> = A
+type 返回消息实体<A> = A
+type 返回消息错误 = string
+type 通道名称 = string
+export interface 发送消息<A> {
+    id: 消息id
+    data: 发送消息实体<A>
+    通道名称: 通道名称
+}
+export interface 返回消息<A> {
+    id: 消息id
+    err: 返回消息错误 | null
+    data: 返回消息实体<A>
+    通道名称: 通道名称
+}
+
+export default function 通信管理者<A, B>(发送函数: (a: 发送消息<A>) => Promise<void>, 通道名称: 通道名称) {
+    var 映射表: { [消息id: string]: 返回消息<B> } = {}
+    var r: 消息管理者<A, B> = {
+        async 发送(data: A) {
             var id = guid2()
-            var 消息: 发送消息 = {
-                id: id,
-                data: data,
-            }
-            await 发送函数(消息转字符串(消息))
-            映射表[id] = {
-                id: id,
-                发送内容: data,
-                返回错误: null,
-                返回内容: null,
-                状态: '未回复',
-            }
+            var 消息: 发送消息<A> = { id, data, 通道名称: 通道名称 }
+            await 发送函数(消息)
             return id
         },
-        async 接收(data) {
-            var 消息 = 字符串转消息(data) as 返回消息
-            if (消息.id == null || typeof 消息.id != 'string') {
-                throw '必须有id:' + data
-            }
-            if (映射表[消息.id] == null) {
-                throw '这个id没有被发送:' + 消息.id
-            }
-
-            映射表[消息.id].状态 = '已回复'
-            映射表[消息.id].返回错误 = 消息.err
-            映射表[消息.id].返回内容 = 消息.data
+        async 接收(data: 返回消息<B>) {
+            if (data.通道名称 != 通道名称) return
+            if (映射表[data.id] != null) return
+            映射表[data.id] = data
         },
-        async 消费(id: string, 超时时间: number = 0) {
-            return new Promise((res, rej) => {
-                if (映射表[id] == null) {
-                    rej('这个id没有被发送:' + id)
-                }
-
-                var 轮询时间 = 100
-                var 运行次数 = 0
-
-                function f() {
-                    运行次数++
-                    if (超时时间 != 0 && 运行次数 * 轮询时间 >= 超时时间) {
-                        return rej('超时:' + JSON.stringify({ id: 映射表[id].id, 发送内容: 映射表[id].发送内容 }))
-                    }
-                    if (映射表[id].状态 == '已回复') {
-                        if (映射表[id].返回错误 != null) {
-                            return rej(映射表[id].返回错误)
-                        }
-                        res(映射表[id].返回内容)
-                        delete 映射表[id]
-                        return
-                    }
-                    setTimeout(f, 100)
-                }
-                f()
-            })
+        async 消费(id: 消息id, 超时时间: number = 5000, 轮询时间: number = 100) {
+            await 等待(() => 映射表[id] != null, 超时时间, 轮询时间)
+            if (映射表[id] == null) throw '不可能到这里'
+            if (映射表[id].err != null) throw 映射表[id].err
+            return 映射表[id].data
         },
         id存在(id) {
             return 映射表[id] != null
